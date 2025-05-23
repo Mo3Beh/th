@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>جزیره گنج - نجات عدسی ها</title>
+    <style>
+      @font-face {
+        font-family: "Peyda";
+        src: url("Peyda.woff2") format("woff2");
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Peyda", sans-serif;
+      }
+
+      body {
+        background-color: #87ceeb;
+        overflow: hidden;
+        direction: rtl;
+        text-align: right;
+        height: 100vh;
+      }
+
+      .game-container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background-image: url("final.png");
+        background-size: cover;
+        background-position: center;
+      }
+
+      .island {
+        position: absolute;
+        width: 80%;
+        height: 80%;
+        background-color: transparent;
+        top: 10%;
+        left: 10%;
+        overflow: hidden; /* Important for point dragging bounds */
+      }
+
+      .water {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: #3498db;
+        z-index: -1;
+      }
+
+      .start-screen {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+      }
+
+      .start-button-container {
+        width: 150px;
+        height: 150px;
+        background-color: #e74c3c;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        transition: transform 0.3s;
+        text-align: center;
+      }
+
+      .start-button-container:hover:not(.timer-active) {
+        transform: scale(1.1);
+      }
+
+      .start-button-container.timer-active {
+        cursor: default;
+      }
+
+      .timer-in-button {
+        display: block !important;
+        font-size: 36px;
+        color: white;
+      }
+
+      .timer-hidden {
+        display: none !important;
+      }
+
+      .game-title {
+        color: white;
+        font-size: 42px;
+        margin-bottom: 40px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+      }
+
+      .game-description {
+        color: white;
+        font-size: 20px;
+        max-width: 600px;
+        text-align: center;
+        margin-top: 30px;
+        line-height: 1.6;
+      }
+
+      .found-letters-button {
+        background-color: #2ecc71;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        font-size: 18px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background-color 0.3s;
+        margin-top: 25px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .found-letters-button:hover {
+        background-color: #27ae60;
+      }
+
+      .treasure-point {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background-color: #e6c50d;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: rgb(0, 0, 0);
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s;
+        z-index: 5;
+      }
+
+      .treasure-point:hover {
+        transform: scale(1.2);
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 20;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal.active {
+        display: flex;
+      }
+
+      .modal-content {
+        background-color: #ffffff; /* Changed */
+        margin: 0;
+        padding: 30px; /* Changed */
+        border-radius: 12px; /* Changed */
+        width: 90%; /* Changed */
+        max-width: 700px; /* Changed */
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); /* Changed */
+        text-align: center;
+        max-height: 90vh; /* Changed */
+        overflow-y: auto; /* Ensured for scrolling */
+        position: relative;
+        /* overflow: hidden; <-- REMOVED this line that was causing scroll issues */
+      }
+
+      .modal.active .modal-content {
+        animation: fadeInScaleUpModal 0.4s ease-out forwards;
+      }
+
+      @keyframes fadeInScaleUpModal {
+        from {
+          opacity: 0;
+          transform: translateY(30px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .modal-image {
+        width: 100%;
+        max-height: 220px;
+        object-fit: contain;
+        margin-bottom: 20px;
+        border-radius: 5px;
+      }
+
+      .modal-title {
+        font-size: 24px;
+        color: #2c3e50;
+        margin-bottom: 20px;
+      }
+
+      .modal-description {
+        font-size: 18px;
+        color: #34495e;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        text-align: right;
+        white-space: pre-line;
+      }
+
+      .close-button {
+        /* Changed */
+        position: absolute;
+        top: 15px;
+        left: 20px;
+        font-size: 28px;
+        font-weight: normal;
+        color: #888;
+        background-color: transparent;
+        border: none;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+      }
+
+      .close-button:hover {
+        /* Changed */
+        background-color: #f0f0f0;
+        color: #333;
+      }
+
+      .code-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+      }
+
+      .code-input {
+        width: 200px;
+        height: 40px;
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 10px;
+        border: 2px solid #3498db;
+        border-radius: 5px;
+        padding: 5px;
+      }
+
+      .submit-button {
+        background-color: #2ecc71;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 18px;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+        min-width: 120px;
+      }
+
+      .submit-button:hover {
+        background-color: #27ae60;
+      }
+
+      .completed-flag {
+        display: none;
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background-color: #27ae60;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        line-height: 40px;
+        font-size: 20px;
+        z-index: 6;
+      }
+
+      .corner-timer {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        font-size: 18px !important;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        z-index: 1000;
+        display: block !important;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .confetti-particle {
+        position: absolute;
+        border-radius: 3px;
+        pointer-events: none;
+      }
+
+      .animated-npc {
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+        display: none; /* Initially hidden, JS will manage display */
+      }
+      #npc-ship {
+        width: 100px;
+        height: auto;
+      }
+      .seagull-npc {
+        /* Common class for seagulls */
+        width: 60px;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-container" id="game-area">
+      <div class="water"></div>
+      <div class="island">
+        <div class="treasure-point" id="point-1" style="top: 65%; left: 30%">
+          1
+        </div>
+        <div class="treasure-point" id="point-2" style="top: 25%; left: 36%">
+          2
+        </div>
+        <div class="treasure-point" id="point-3" style="top: 50%; left: 45%">
+          3
+        </div>
+        <div class="treasure-point" id="point-4" style="top: 40%; left: 58%">
+          4
+        </div>
+        <div class="treasure-point" id="point-5" style="top: 40%; left: 70%">
+          5
+        </div>
+
+        <div class="completed-flag" id="flag-1" style="top: 65%; left: 30%">
+          ✓
+        </div>
+        <div class="completed-flag" id="flag-2" style="top: 25%; left: 36%">
+          ✓
+        </div>
+        <div class="completed-flag" id="flag-3" style="top: 50%; left: 45%">
+          ✓
+        </div>
+        <div class="completed-flag" id="flag-4" style="top: 40%; left: 58%">
+          ✓
+        </div>
+        <div class="completed-flag" id="flag-5" style="top: 40%; left: 70%">
+          ✓
+        </div>
+      </div>
+
+      <img id="npc-ship" class="animated-npc" src="ship.png" alt="کشتی متحرک" />
+      <img
+        id="npc-seagull-1"
+        class="animated-npc seagull-npc"
+        src="/SEAGULL.png"
+        alt="مرغ دریایی متحرک ۱"
+      />
+      <img
+        id="npc-seagull-2"
+        class="animated-npc seagull-npc"
+        src="/SEAGULL.png"
+        alt="مرغ دریایی متحرک ۲"
+      />
+      <img
+        id="npc-seagull-3"
+        class="animated-npc seagull-npc"
+        src="/SEAGULL.png"
+        alt="مرغ دریایی متحرک ۳"
+      />
+
+      <div class="start-screen" id="start-screen">
+        <h1 class="game-title">جزیره گنج - نجات عدسی ها</h1>
+        <div class="start-button-container" id="start-button-container">
+          <span id="start-button-text">گشتن برای نامه ها</span>
+          <span id="timer-display" class="timer-hidden">00:00</span>
+        </div>
+        <button
+          class="found-letters-button"
+          id="found-letters-button"
+          style="display: none"
+        >
+          نامه ها را یافتم برو به نقشه
+        </button>
+        <p class="game-description">
+          غول عدسی در حال دزدیدن تمام عدسی های جهان است! شما باید به جزیره گنج
+          سفر کنید و نامه های مخفی را پیدا کنید تا عدسی ها را نجات دهید. هر نامه
+          رمزی را به شما می دهد که باید وارد کنید تا به مرحله بعد بروید.
+        </p>
+      </div>
+    </div>
+
+    <div class="modal" id="treasure-modal">
+      <div class="modal-content">
+        <span class="close-button" id="close-modal">×</span>
+        <img
+          src="/uv.jpeg"
+          class="modal-image"
+          id="modal-image"
+          alt="تصویر مرحله"
+        />
+        <h2 class="modal-title" id="modal-title">عنوان</h2>
+        <p class="modal-description" id="modal-description">توضیحات</p>
+        <div class="code-form" id="modal-code-form">
+          <input
+            type="text"
+            class="code-input"
+            id="code-input"
+            placeholder="رمز 4 رقمی را وارد کنید"
+            maxlength="4"
+          />
+          <button class="submit-button" id="submit-code">تأیید</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="win-modal">
+      <div class="modal-content">
+        <h2 class="modal-title">تبریک! شما برنده شدید!</h2>
+        <img src="/" alt="تبریک" class="modal-image" />
+        <p class="modal-description">
+          شما موفق شدید همه عدسی های جهان را از دست غول عدسی نجات دهید! قهرمان
+          واقعی شما هستید!
+        </p>
+        <button class="submit-button" id="restart-button">شروع مجدد</button>
+      </div>
+    </div>
+
+    <audio
+      id="background-music"
+      src="Finale (William Tell Overture).mp3"
+      preload="auto"
+    ></audio>
+    <audio id="island-ambience" src="/waves.mp3" loop preload="auto"></audio>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const gameState = {
+          currentStage: 0,
+          completedStages: [],
+          codes: { 1: "1234", 2: "1234", 3: "1234", 4: "1234", 5: "FINISH" },
+          stageInfo: {
+            1: {
+              title: "ساحل مرجانی",
+              description: `نور، عنصر جادویی طبیعت است که بدون آن، دنیا در تاریکی مطلق فرو می‌رفت. اما آیا می‌دانستید نور فقط آن چیزی نیست که ما می‌بینیم؟ \n\nدر این ساحل زیبا، برخی از مرجان‌ها و موجودات دریایی ویژگی خاصی دارند - آنها زیر نور فرابنفش می‌درخشند و رازهایی را آشکار می‌کنند که با چشم غیرمسلح قابل مشاهده نیست. \n\nغول عدسی‌ها نمی‌داند که شما راز نور فرابنفش را می‌دانید. با استفاده از این دانش، می‌توانید پیام‌های پنهان را کشف کنید و به مرحله بروید؟`,
+            },
+            2: {
+              title: "آتشفشان دودزا",
+              description: `در دامنه آتشفشان دودزای جزیره عدسی‌ها، رازی بزرگ پنهان شده است. اینجا مکانی است که عدسی‌ها قدرت خود را به نمایش می‌گذارند. ذره‌بین‌ها نمونه‌ای از عدسی‌ها هستند که می‌توانند پرتوهای نور را جمع‌آوری کرده و در یک نقطه متمرکز کنند.  هنگامی که نور خورشید از ذره‌بین عبور می‌کند، پرتوها به سمت یک نقطه خاص هدایت می‌شوند که به آن «کانون» می‌گویند. در این نقطه، انرژی نور به شدت متمرکز می‌شود و گرمای زیادی تولید می‌کند \n در مسیر مبارزه با غول عدسی‌ها، این دانش به شما کمک می‌کند تا پیام‌های پنهان را آشکار سازید. .`,
+            },
+            3: {
+              title: "پیام وارونه",
+              description: `یک کشتی غرق‌شده در اعماق جزیره عدسی‌ها... و درون اون، نامه‌ای عجیب! نوشته‌ها هستن، ولی انگار همه‌چیز برعکسه!\n\nدر این بخش از جزیره عدسی‌ها، با یکی از شگفت‌انگیزترین ویژگی‌های عدسی‌ها روبرو می‌شوید: قدرت وارونه کردن تصاویر! هنگامی که نور از اجسام به عدسی‌ها برخورد می‌کند و از آن عبور می‌کند، مسیر پرتوها تغییر می‌کند و تصویری که در طرف دیگر عدسی تشکیل می‌شود، وارونه است.\n\nگاهی برای دیدن حقیقت، باید از زاویه‌ای دیگر به مسائل نگاه کرد!`,
+            },
+            4: {
+              title: "جزیره نقطه کانونی",
+              description: `نگاه کن! آن دور، یک جزیره کوچک دیگر است که از بقیه جزیره عدسی‌ها جدا افتاده است. برای رسیدن به آنجا باید با قایق از دریای نور عبور کنی!\n\nاین جزیره، جزیره نقطه کانونی نام دارد. جایی که آخرین راز عدسی‌ها در آن پنهان شده است. اینجا مکانی جادویی است که عدسی‌ها تصاویر واضح و روشن می‌سازند.\n\nدر این جزیره، یک برج جادویی وجود دارد که در آن یک شمع و یک پرده سفید قرار دارد. می‌دانی هر عدسی یک نقطه ویژه دارد که به آن "نقطه کانونی" می‌گویند؟\n\nبرای پیدا کردن آخرین رمز، باید آزمایش جادویی انجام دهی! شمع را در یک متری پرده سفید قرار بده. حالا عدسی را بین آنها بگیر و آرام آرام حرکت بده.`,
+            },
+            5: {
+              title: "پایان ماجراجویی",
+              description: `آفرین تو توانستی جزیره عدسی ها را نجات بدهی و الان می توانی اسم خودت را قهرمان بگذاری..\n\nبه کشتی بازگرد`,
+            },
+          },
+        };
+
+        const startScreen = document.getElementById("start-screen");
+        const startButtonContainer = document.getElementById(
+          "start-button-container"
+        );
+        const startButtonText = document.getElementById("start-button-text");
+        const timerDisplay = document.getElementById("timer-display");
+        const foundLettersButton = document.getElementById(
+          "found-letters-button"
+        );
+        const backgroundMusic = document.getElementById("background-music");
+        const islandAmbience = document.getElementById("island-ambience");
+
+        const treasureModal = document.getElementById("treasure-modal");
+        const winModal = document.getElementById("win-modal");
+        const closeModalButton = document.getElementById("close-modal");
+        const modalTitle = document.getElementById("modal-title");
+        const modalImage = document.getElementById("modal-image");
+        const modalDescription = document.getElementById("modal-description");
+        const codeInput = document.getElementById("code-input");
+        const modalCodeForm = document.getElementById("modal-code-form");
+        const submitCodeButton = document.getElementById("submit-code");
+        const restartButton = document.getElementById("restart-button");
+
+        const treasurePoints = [
+          document.getElementById("point-1"),
+          document.getElementById("point-2"),
+          document.getElementById("point-3"),
+          document.getElementById("point-4"),
+          document.getElementById("point-5"),
+        ];
+
+        const completedFlags = [
+          document.getElementById("flag-1"),
+          document.getElementById("flag-2"),
+          document.getElementById("flag-3"),
+          document.getElementById("flag-4"),
+          document.getElementById("flag-5"),
+        ];
+
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+
+        function formatTime(totalSeconds) {
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          return `${String(minutes).padStart(
+            2,
+            "0"
+          )}:${String(seconds).padStart(2, "0")}`;
+        }
+
+        function updateTimerDisplay() {
+          timerDisplay.textContent = formatTime(elapsedSeconds);
+        }
+
+        function startTimer() {
+          if (timerInterval) clearInterval(timerInterval);
+          elapsedSeconds = 0;
+          updateTimerDisplay();
+          timerInterval = setInterval(() => {
+            elapsedSeconds++;
+            updateTimerDisplay();
+          }, 1000);
+        }
+
+        function stopTimer() {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        startButtonContainer.addEventListener("click", function () {
+          if (startButtonContainer.classList.contains("timer-active")) return;
+          startButtonText.style.display = "none";
+          timerDisplay.classList.remove("timer-hidden");
+          timerDisplay.classList.remove("corner-timer");
+          timerDisplay.classList.add("timer-in-button");
+          startButtonContainer.classList.add("timer-active");
+          startTimer();
+          foundLettersButton.style.display = "inline-block";
+          backgroundMusic.currentTime = 0;
+          backgroundMusic
+            .play()
+            .catch((error) => console.warn("Music play failed:", error));
+        });
+
+        foundLettersButton.addEventListener("click", function () {
+          startScreen.style.display = "none";
+          timerDisplay.classList.remove("timer-in-button");
+          timerDisplay.classList.add("corner-timer");
+          timerDisplay.classList.remove("timer-hidden");
+          backgroundMusic.pause();
+          islandAmbience.volume = 0.2;
+          islandAmbience
+            .play()
+            .catch((error) =>
+              console.warn("Island ambience play failed:", error)
+            );
+          startNpcAnimations();
+
+          treasurePoints.forEach((point, index) => {
+            if (index === 0) point.style.animation = "bounce 0.5s infinite";
+            else {
+              point.style.opacity = "0.5";
+              point.style.pointerEvents = "none";
+            }
+          });
+        });
+
+        treasurePoints.forEach((point, index) => {
+          point.addEventListener("click", function () {
+            openTreasureModal(index + 1);
+          });
+        });
+
+        function openTreasureModal(stageNumber) {
+          gameState.currentStage = stageNumber;
+          const stageInfo = gameState.stageInfo[stageNumber];
+          modalTitle.textContent = stageInfo.title;
+          modalDescription.innerHTML = stageInfo.description.replace(
+            /\n/g,
+            "<br>"
+          );
+          modalImage.src = `stages/${stageNumber}.jpeg`;
+          codeInput.value = "";
+          treasureModal.classList.add("active");
+
+          if (stageNumber === 5) {
+            modalCodeForm.style.display = "block";
+            codeInput.style.display = "none";
+            submitCodeButton.textContent = "تموم کردن بازی";
+            triggerConfettiShower(80);
+          } else {
+            modalCodeForm.style.display = "flex";
+            codeInput.style.display = "block";
+            submitCodeButton.textContent = "تأیید";
+          }
+        }
+
+        codeInput.addEventListener("keypress", function (event) {
+          if (event.key === "Enter" || event.keyCode === 13) {
+            event.preventDefault();
+            submitCodeButton.click();
+          }
+        });
+
+        submitCodeButton.addEventListener("click", function () {
+          if (gameState.currentStage === 5) {
+            treasureModal.classList.remove("active");
+            stopTimer();
+            setTimeout(() => {
+              winModal.classList.add("active");
+            }, 500);
+            return;
+          }
+
+          const enteredCode = codeInput.value;
+          const correctCode = gameState.codes[gameState.currentStage];
+
+          if (enteredCode === correctCode) {
+            if (!gameState.completedStages.includes(gameState.currentStage)) {
+              gameState.completedStages.push(gameState.currentStage);
+              completedFlags[gameState.currentStage - 1].style.display =
+                "block";
+              treasurePoints[gameState.currentStage - 1].style.animation = "";
+
+              if (gameState.currentStage < 5) {
+                treasurePoints[gameState.currentStage].style.opacity = "1";
+                treasurePoints[gameState.currentStage].style.pointerEvents =
+                  "auto";
+                treasurePoints[gameState.currentStage].style.animation =
+                  "bounce 0.5s infinite";
+              }
+            }
+            treasureModal.classList.remove("active");
+          } else {
+            codeInput.style.border = "2px solid red";
+            codeInput.style.animation = "shake 0.5s";
+            setTimeout(() => {
+              codeInput.style.border = "2px solid #3498DB";
+              codeInput.style.animation = "";
+            }, 500);
+          }
+        });
+
+        closeModalButton.addEventListener("click", function () {
+          treasureModal.classList.remove("active");
+        });
+
+        restartButton.addEventListener("click", function () {
+          winModal.classList.remove("active");
+          startScreen.style.display = "flex";
+          stopTimer();
+          timerDisplay.classList.remove("corner-timer");
+          timerDisplay.classList.remove("timer-in-button");
+          timerDisplay.classList.add("timer-hidden");
+          elapsedSeconds = 0;
+          updateTimerDisplay();
+          startButtonText.style.display = "inline-block";
+          startButtonContainer.classList.remove("timer-active");
+          foundLettersButton.style.display = "none";
+          backgroundMusic.pause();
+          backgroundMusic.currentTime = 0;
+          islandAmbience.pause();
+          islandAmbience.currentTime = 0;
+          stopNpcAnimations();
+
+          gameState.currentStage = 0;
+          gameState.completedStages = [];
+          treasurePoints.forEach((point, index) => {
+            point.style.opacity = "1";
+            point.style.pointerEvents = "auto";
+            point.style.animation = "";
+            if (index !== 0) {
+              point.style.opacity = "1";
+              point.style.pointerEvents = "auto";
+            }
+          });
+          // Re-apply initial point state (only first active)
+          treasurePoints.forEach((point, index) => {
+            if (index === 0) {
+              point.style.opacity = "1";
+              point.style.pointerEvents = "auto";
+            } else {
+              point.style.opacity = "0.5";
+              point.style.pointerEvents = "none";
+            }
+          });
+
+          completedFlags.forEach((flag) => {
+            flag.style.display = "none";
+          });
+        });
+
+        window.addEventListener("click", function (event) {
+          if (event.target === treasureModal)
+            treasureModal.classList.remove("active");
+          if (event.target === winModal) winModal.classList.remove("active");
+        });
+
+        const style = document.createElement("style");
+        style.textContent = `@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }`;
+        document.head.appendChild(style);
+
+        function createConfettiParticle() {
+          const particle = document.createElement("div");
+          particle.classList.add("confetti-particle");
+          const colors = [
+            "#E74C3C",
+            "#F1C40F",
+            "#3498DB",
+            "#2ECC71",
+            "#9B59B6",
+            "#E67E22",
+          ];
+          particle.style.backgroundColor =
+            colors[Math.floor(Math.random() * colors.length)];
+          const modalContent = treasureModal.querySelector(".modal-content");
+          particle.style.left = Math.random() * modalContent.offsetWidth + "px";
+          particle.style.top = Math.random() * -30 - 10 + "px";
+          const size = Math.random() * 8 + 4;
+          particle.style.width = size + "px";
+          particle.style.height = size + "px";
+          const rotation = Math.random() * 360;
+          particle.style.transform = `rotate(${rotation}deg)`;
+          modalContent.appendChild(particle);
+          particle.animate(
+            [
+              {
+                transform: `translateY(0px) rotate(${rotation}deg)`,
+                opacity: 1,
+              },
+              {
+                transform: `translateY(${
+                  modalContent.offsetHeight + 20 + modalContent.scrollTop // Ensure it falls below visible scrolled area
+                }px) rotate(${rotation + Math.random() * 180}deg)`,
+                opacity: 0,
+              },
+            ],
+            {
+              duration: Math.random() * 1500 + 2000,
+              easing: "ease-out",
+              delay: Math.random() * 200,
+            }
+          );
+          setTimeout(() => {
+            if (particle.parentNode) particle.remove();
+          }, 3700);
+        }
+
+        function triggerConfettiShower(count = 50) {
+          const modalContent = treasureModal.querySelector(".modal-content");
+          if (getComputedStyle(modalContent).position === "static")
+            // Ensure position relative for absolute children
+            modalContent.style.position = "relative";
+          // REMOVED: modalContent.style.overflow = "hidden";
+          for (let i = 0; i < count; i++) {
+            setTimeout(createConfettiParticle, i * (Math.random() * 30 + 10));
+          }
+        }
+
+        const gameArea = document.getElementById("game-area");
+        const npcShip = document.getElementById("npc-ship");
+        const npcSeagullElements = [
+          document.getElementById("npc-seagull-1"),
+          document.getElementById("npc-seagull-2"),
+          document.getElementById("npc-seagull-3"),
+        ];
+
+        let npcAnimationId = null;
+        let activeNPCs = [];
+        let seagullManagementInterval = null;
+        const SEAGULL_POPULATION_CHECK_INTERVAL = 5000; // ms
+
+        const npcMovementSettings = {
+          ship: {
+            speed: 0.7,
+            bobbleAmountY: 2,
+            bobbleSpeed: 0.04,
+            entryMargin: 100,
+            respawnDelayMin: 2000,
+            respawnDelayMax: 4000,
+          },
+          seagull: {
+            speedX: 1.1,
+            speedYBase: 0.5,
+            swoopAmplitude: 20,
+            swoopFrequency: 0.025,
+            changeDirectionIntervalMin: 3500,
+            changeDirectionIntervalMax: 6500,
+            entryMargin: 100,
+            respawnDelayMin: 5000,
+            respawnDelayMax: 10000,
+            arcChance: 0.15,
+            arcAttemptDelayMin: 3000,
+            arcAttemptDelayMax: 6000,
+            arcRadiusMin: 40,
+            arcRadiusMax: 70,
+            arcSpeed: 0.04,
+          },
+        };
+
+        function initializeNPC(element, type) {
+          const gameRect = gameArea.getBoundingClientRect();
+          let npc = {
+            element: element,
+            type: type,
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            settings: npcMovementSettings[type],
+            offScreen: true,
+            respawnTimer: null,
+          };
+
+          if (type === "ship") {
+            npc.startY = gameRect.height * (0.75 + Math.random() * 0.1);
+            npc.currentPatrolZone = "rightQuarter";
+            npc.isExiting = false;
+            npc.patrolTurns = 0;
+            npc.targetPatrolTurns = 1 + Math.floor(Math.random() * 2);
+            npc.patrolInternalDirection = -1;
+            npc.targetExitDirection = 1;
+          } else if (type === "seagull") {
+            npc.directionX = 1;
+            npc.swoopAngle = Math.random() * Math.PI * 2;
+            npc.lastDirectionChange = 0;
+            npc.nextDirectionChangeInterval = 0;
+            npc.isDoingArc = false;
+            npc.arcCurrentAngle = 0;
+            npc.arcRadius = 0;
+            npc.arcCenterX = 0;
+            npc.arcCenterY = 0;
+            npc.arcDirectionFactor = 1;
+            npc.arcOriginX = 0;
+            npc.arcOriginY = 0;
+            npc.arcProgress = 0;
+            npc.timeSinceLastArc = 0;
+            npc.nextArcAttemptDelay = 0;
+            npc.tempStoreVx = 0;
+          }
+          return npc;
+        }
+
+        function resetNpcPosition(npc, gameRect) {
+          npc.offScreen = true;
+          clearTimeout(npc.respawnTimer);
+          npc.isDoingArc = false;
+
+          if (npc.type === "ship") {
+            npc.isExiting = false;
+            npc.patrolTurns = 0;
+            npc.targetPatrolTurns = 1 + Math.floor(Math.random() * 2);
+
+            if (npc.currentPatrolZone === "rightQuarter") {
+              npc.currentPatrolZone = "leftQuarter";
+            } else {
+              npc.currentPatrolZone = "rightQuarter";
+            }
+
+            if (npc.currentPatrolZone === "leftQuarter") {
+              npc.x = -npc.settings.entryMargin - npc.element.offsetWidth;
+              npc.patrolInternalDirection = 1;
+              npc.targetExitDirection = -1;
+              npc.element.style.transform = "scaleX(1)";
+            } else {
+              npc.x = gameRect.width + npc.settings.entryMargin;
+              npc.patrolInternalDirection = -1;
+              npc.targetExitDirection = 1;
+              npc.element.style.transform = "scaleX(-1)";
+            }
+            npc.vx = npc.settings.speed * npc.patrolInternalDirection;
+            npc.y = npc.startY;
+          } else if (npc.type === "seagull") {
+            npc.directionX = Math.random() < 0.5 ? 1 : -1;
+            npc.x =
+              npc.directionX === 1
+                ? -npc.settings.entryMargin - npc.element.offsetWidth
+                : gameRect.width + npc.settings.entryMargin;
+            npc.y = gameRect.height * (0.1 + Math.random() * 0.4);
+            npc.vx = npc.settings.speedX * npc.directionX;
+            npc.vy = npc.settings.speedYBase * (Math.random() < 0.5 ? 1 : -1);
+            npc.element.style.transform = `scaleX(${npc.directionX})`;
+            npc.lastDirectionChange = performance.now();
+            npc.nextDirectionChangeInterval =
+              npc.settings.changeDirectionIntervalMin +
+              Math.random() *
+                (npc.settings.changeDirectionIntervalMax -
+                  npc.settings.changeDirectionIntervalMin);
+            npc.timeSinceLastArc = 0;
+            npc.nextArcAttemptDelay =
+              npc.settings.arcAttemptDelayMin +
+              Math.random() *
+                (npc.settings.arcAttemptDelayMax -
+                  npc.settings.arcAttemptDelayMin);
+          }
+          npc.element.style.left = npc.x + "px";
+          npc.element.style.top = npc.y + "px";
+
+          const respawnDelay =
+            npc.settings.respawnDelayMin +
+            Math.random() *
+              (npc.settings.respawnDelayMax - npc.settings.respawnDelayMin);
+
+          npc.respawnTimer = setTimeout(() => {
+            npc.offScreen = false;
+            if (npc.type === "ship") {
+              npc.element.style.display = "block";
+            }
+          }, respawnDelay);
+        }
+
+        function manageSeagullPopulation() {
+          const gameRect = gameArea.getBoundingClientRect();
+          let desiredVisibleSeagulls = 1;
+          const r = Math.random();
+          if (r < 0.05) {
+            desiredVisibleSeagulls = 3;
+          } else if (r < 0.25) {
+            desiredVisibleSeagulls = 2;
+          }
+
+          let visibleCount = 0;
+          const seagullNPCs = activeNPCs.filter((n) => n.type === "seagull");
+
+          seagullNPCs.forEach((npc) => {
+            if (npc.element.style.display !== "none" && !npc.offScreen) {
+              visibleCount++;
+            }
+          });
+
+          for (
+            let i = 0;
+            i < seagullNPCs.length && visibleCount < desiredVisibleSeagulls;
+            i++
+          ) {
+            const npc = seagullNPCs[i];
+            if (npc.element.style.display === "none" || npc.offScreen) {
+              npc.element.style.display = "block";
+              resetNpcPosition(npc, gameRect);
+              npc.offScreen = false;
+              clearTimeout(npc.respawnTimer);
+              visibleCount++;
+            }
+          }
+
+          if (visibleCount > desiredVisibleSeagulls) {
+            let deactivated = 0;
+            for (let i = seagullNPCs.length - 1; i >= 0; i--) {
+              const npc = seagullNPCs[i];
+              if (npc.element.style.display !== "none" && !npc.offScreen) {
+                if (visibleCount - deactivated > desiredVisibleSeagulls) {
+                  npc.element.style.display = "none";
+                  npc.offScreen = true;
+                  clearTimeout(npc.respawnTimer);
+                  deactivated++;
+                }
+              }
+            }
+          }
+        }
+
+        function updateNPCs() {
+          const gameRect = gameArea.getBoundingClientRect();
+          activeNPCs.forEach((npc) => {
+            if (
+              npc.offScreen ||
+              (npc.type === "seagull" && npc.element.style.display === "none")
+            ) {
+              return;
+            }
+
+            if (npc.type === "ship") {
+              const quarterWidth = gameRect.width / 4;
+              let zoneStartX, zoneEndX;
+
+              if (npc.currentPatrolZone === "leftQuarter") {
+                zoneStartX = 0;
+                zoneEndX = quarterWidth;
+              } else {
+                zoneStartX = gameRect.width * 0.75;
+                zoneEndX = gameRect.width;
+              }
+
+              npc.x += npc.vx;
+              npc.bobbleAngle =
+                (npc.bobbleAngle || 0) + npc.settings.bobbleSpeed;
+              npc.element.style.top =
+                npc.startY +
+                Math.sin(npc.bobbleAngle) * npc.settings.bobbleAmountY +
+                "px";
+              npc.element.style.left = npc.x + "px";
+
+              if (!npc.isExiting) {
+                const shipEffectiveLeft = npc.x;
+                const shipEffectiveRight = npc.x + npc.element.offsetWidth;
+
+                if (
+                  (npc.patrolInternalDirection === 1 &&
+                    shipEffectiveRight > zoneEndX) ||
+                  (npc.patrolInternalDirection === -1 &&
+                    shipEffectiveLeft < zoneStartX)
+                ) {
+                  npc.patrolInternalDirection *= -1;
+                  npc.vx = npc.settings.speed * npc.patrolInternalDirection;
+                  npc.element.style.transform = `scaleX(${npc.patrolInternalDirection})`;
+                  npc.patrolTurns++;
+
+                  if (npc.patrolTurns >= npc.targetPatrolTurns) {
+                    npc.isExiting = true;
+                    npc.vx = npc.settings.speed * npc.targetExitDirection;
+                    npc.element.style.transform = `scaleX(${npc.targetExitDirection})`;
+                  }
+                }
+              } else {
+                if (
+                  (npc.targetExitDirection === 1 &&
+                    npc.x > gameRect.width + npc.settings.entryMargin / 2) ||
+                  (npc.targetExitDirection === -1 &&
+                    npc.x <
+                      -npc.element.offsetWidth - npc.settings.entryMargin / 2)
+                ) {
+                  npc.element.style.display = "none";
+                  resetNpcPosition(npc, gameRect);
+                }
+              }
+            } else if (npc.type === "seagull") {
+              npc.timeSinceLastArc += 16.67;
+
+              if (
+                !npc.isDoingArc &&
+                npc.timeSinceLastArc > npc.nextArcAttemptDelay &&
+                Math.random() < npc.settings.arcChance
+              ) {
+                npc.isDoingArc = true;
+                npc.arcRadius =
+                  npc.settings.arcRadiusMin +
+                  Math.random() *
+                    (npc.settings.arcRadiusMax - npc.settings.arcRadiusMin);
+                npc.arcDirectionFactor = Math.random() < 0.5 ? 1 : -1;
+                npc.arcOriginX = npc.x;
+                npc.arcOriginY = npc.y;
+                npc.arcProgress = 0;
+                npc.tempStoreVx = npc.vx;
+                npc.element.style.transform = `scaleX(${
+                  Math.sign(npc.tempStoreVx) || npc.directionX
+                })`;
+              }
+
+              if (npc.isDoingArc) {
+                npc.arcProgress += npc.settings.arcSpeed;
+                let horizontalDirection =
+                  Math.sign(npc.tempStoreVx) || npc.directionX;
+
+                npc.x =
+                  npc.arcOriginX +
+                  horizontalDirection *
+                    (npc.arcRadius - npc.arcRadius * Math.cos(npc.arcProgress));
+                npc.y =
+                  npc.arcOriginY -
+                  npc.arcRadius *
+                    Math.sin(npc.arcProgress) *
+                    npc.arcDirectionFactor;
+
+                if (npc.arcProgress >= Math.PI) {
+                  npc.isDoingArc = false;
+                  npc.x =
+                    npc.arcOriginX + horizontalDirection * npc.arcRadius * 2;
+                  npc.y = npc.arcOriginY;
+                  npc.vx = npc.tempStoreVx;
+                  if (
+                    npc.x <= 0 ||
+                    npc.x + npc.element.offsetWidth >= gameRect.width
+                  ) {
+                    npc.vx *= -1;
+                    npc.directionX *= -1;
+                  }
+                  npc.element.style.transform = `scaleX(${npc.directionX})`;
+                  npc.timeSinceLastArc = 0;
+                  npc.nextArcAttemptDelay =
+                    npc.settings.arcAttemptDelayMin +
+                    Math.random() *
+                      (npc.settings.arcAttemptDelayMax -
+                        npc.settings.arcAttemptDelayMin);
+                }
+              } else {
+                npc.x += npc.vx;
+                npc.swoopAngle += npc.settings.swoopFrequency;
+                npc.y +=
+                  npc.vy +
+                  Math.sin(npc.swoopAngle) *
+                    (npc.settings.swoopAmplitude * 0.05);
+
+                if (
+                  performance.now() - npc.lastDirectionChange >
+                  npc.nextDirectionChangeInterval
+                ) {
+                  npc.vy =
+                    npc.settings.speedYBase *
+                    (Math.random() < 0.5 ? 1 : -1) *
+                    (0.5 + Math.random());
+                  npc.lastDirectionChange = performance.now();
+                  npc.nextDirectionChangeInterval =
+                    npc.settings.changeDirectionIntervalMin +
+                    Math.random() *
+                      (npc.settings.changeDirectionIntervalMax -
+                        npc.settings.changeDirectionIntervalMin);
+                }
+                if (
+                  (npc.x < 0 && npc.vx < 0) ||
+                  (npc.x + npc.element.offsetWidth > gameRect.width &&
+                    npc.vx > 0)
+                ) {
+                  npc.vx *= -1;
+                  npc.directionX *= -1;
+                  npc.element.style.transform = `scaleX(${npc.directionX})`;
+                }
+                if (
+                  (npc.y < 0 && npc.vy < 0) ||
+                  (npc.y > gameRect.height * 0.65 - npc.element.offsetHeight &&
+                    npc.vy > 0)
+                ) {
+                  npc.vy *= -1;
+                }
+              }
+              npc.element.style.left = npc.x + "px";
+              npc.element.style.top = npc.y + "px";
+            }
+
+            if (npc.type === "seagull") {
+              const isSeagullOff =
+                (npc.vx > 0 &&
+                  npc.x > gameRect.width + npc.settings.entryMargin) ||
+                (npc.vx < 0 &&
+                  npc.x <
+                    -npc.element.offsetWidth - npc.settings.entryMargin) ||
+                npc.y < -npc.settings.entryMargin - npc.element.offsetHeight ||
+                npc.y > gameRect.height + npc.settings.entryMargin;
+
+              if (isSeagullOff) {
+                resetNpcPosition(npc, gameRect);
+              }
+            }
+          });
+        }
+
+        function gameLoop() {
+          updateNPCs();
+          npcAnimationId = requestAnimationFrame(gameLoop);
+        }
+
+        function startNpcAnimations() {
+          if (npcAnimationId) return;
+
+          const gameRect = gameArea.getBoundingClientRect();
+          activeNPCs = [];
+
+          const shipNPC = initializeNPC(npcShip, "ship");
+          activeNPCs.push(shipNPC);
+          resetNpcPosition(shipNPC, gameRect);
+
+          npcSeagullElements.forEach((el) => {
+            const seagullNPC = initializeNPC(el, "seagull");
+            activeNPCs.push(seagullNPC);
+            el.style.display = "none";
+            seagullNPC.offScreen = true;
+          });
+
+          manageSeagullPopulation();
+          if (seagullManagementInterval)
+            clearInterval(seagullManagementInterval);
+          seagullManagementInterval = setInterval(
+            manageSeagullPopulation,
+            SEAGULL_POPULATION_CHECK_INTERVAL
+          );
+
+          npcAnimationId = requestAnimationFrame(gameLoop);
+        }
+
+        function stopNpcAnimations() {
+          if (npcAnimationId) {
+            cancelAnimationFrame(npcAnimationId);
+            npcAnimationId = null;
+          }
+          if (seagullManagementInterval) {
+            clearInterval(seagullManagementInterval);
+            seagullManagementInterval = null;
+          }
+          activeNPCs.forEach((npc) => {
+            npc.element.style.display = "none";
+            clearTimeout(npc.respawnTimer);
+            npc.offScreen = true;
+          });
+          activeNPCs = [];
+        }
+      });
+    </script>
+  </body>
+</html>
