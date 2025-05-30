@@ -179,7 +179,7 @@
         padding: 30px;
         border-radius: 12px;
         width: 90%;
-        max-width: 700px;
+        max-width: 800px; /* MODIFIED: Increased width */
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         text-align: center;
         max-height: 90vh;
@@ -217,9 +217,9 @@
       }
 
       .modal-description {
-        font-size: 18px;
+        font-size: 19px; /* MODIFIED: Increased font size */
         color: #34495e;
-        line-height: 1.6;
+        line-height: 1.7; /* MODIFIED: Adjusted line height */
         margin-bottom: 30px;
         text-align: right;
         white-space: pre-line;
@@ -256,9 +256,9 @@
       }
 
       .code-input {
-        width: 200px;
-        height: 40px;
-        font-size: 18px;
+        width: 250px; /* MODIFIED: Increased width */
+        height: 45px; /* MODIFIED: Increased height */
+        font-size: 20px; /* MODIFIED: Increased font size */
         text-align: center;
         margin-bottom: 10px;
         border: 2px solid #3498db;
@@ -384,16 +384,61 @@
         background-color: #e67e22;
       }
       #simulator-button {
-        /* NEW STYLE FOR SIMULATOR BUTTON */
         background-color: #3498db; /* Blue color */
         margin-top: 10px;
       }
       #simulator-button:hover {
         background-color: #2980b9;
       }
+      #mindmap-button { /* NEW STYLE FOR MINDMAP BUTTON */
+        background-color: #1abc9c; /* Teal color */
+        margin-top: 10px;
+      }
+      #mindmap-button:hover {
+        background-color: #16a085;
+      }
+
+      /* Notification Toast Styles */
+      #notification-container {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        pointer-events: none; /* Allow clicks through the container */
+      }
+      .notification-toast {
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-size: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        text-align: center;
+        pointer-events: all; /* Re-enable pointer events for the toast itself */
+      }
+      .notification-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .notification-toast.success {
+        background-color: #2ecc71; /* Green */
+      }
+      .notification-toast.error {
+        background-color: #e74c3c; /* Red */
+      }
+
     </style>
   </head>
   <body>
+    <div id="notification-container"></div> <!-- NEW: Notification Area -->
+
     <div class="game-container" id="game-area">
       <div class="water"></div>
       <div class="island">
@@ -492,21 +537,12 @@
           />
           <button class="submit-button" id="submit-code">تأیید</button>
         </div>
-        <button
-          class="submit-button"
-          id="sanjesh-button"
-          style="display: none; margin-top: 15px"
-        >
-          ورود به سنجش
-        </button>
-        <button
-          class="submit-button"
-          id="simulator-button"
-          style="display: none; margin-top: 10px"
-        >
-          استفاده از شبیه ساز
-        </button>
-        <!-- NEW BUTTON -->
+        <!-- MODIFIED: Container for stage-specific action buttons -->
+        <div id="modal-action-buttons" style="display: none; flex-direction: column; align-items: center; margin-top: 15px;">
+            <button class="submit-button" id="sanjesh-button" style="display: none;">ورود به سنجش</button>
+            <button class="submit-button" id="mindmap-button" style="display: none;">نقشه ذهنی جزیره</button> <!-- NEW BUTTON -->
+            <button class="submit-button" id="simulator-button" style="display: none;">استفاده از شبیه ساز</button>
+        </div>
       </div>
     </div>
 
@@ -514,7 +550,6 @@
       <div class="modal-content">
         <h2 class="modal-title">تبریک! شما برنده شدید!</h2>
         <img src="win.png" alt="تبریک" class="modal-image" />
-        <!-- Changed placeholder src -->
         <p class="modal-description">
           شما موفق شدید همه عدسی های جهان را از دست غول عدسی نجات دهید! کلید قفل زیر جعبه قرار دارد. قهرمان
           واقعی شما هستید!
@@ -534,14 +569,12 @@
       </div>
     </div>
 
-    <audio
-      id="background-music"
-      src="Finale (William Tell Overture).mp3"
-      preload="auto"
-    ></audio>
+    <audio id="background-music" src="Finale (William Tell Overture).mp3" preload="auto"></audio>
     <audio id="island-ambience" src="waves.mp3" loop preload="auto"></audio>
     <audio id="ghoul-sound" src="ghoul.mp3" preload="auto"></audio>
     <audio id="siren-sound" src="siren.mp3" loop preload="auto"></audio>
+    <audio id="success-sound" src="success.mp3" preload="auto"></audio> <!-- NEW: Success sound, replace success.mp3 with actual file -->
+
 
     <script>
       document.addEventListener("DOMContentLoaded", function () {
@@ -564,7 +597,7 @@
             },
             4: {
               title: "جزیره نقطه کانونی",
-              description: `نگاه کن! آن دور، یک جزیره کوچک دیگر است که از بقیه جزیره عدسی‌ها جدا افتاده است. برای رسیدن به آنجا باید با قایق از دریای نور عبور کنی!\n\nاین جزیره، جزیره نقطه کانونی نام دارد. جایی که آخرین راز عدسی‌ها در آن پنهان شده است. اینجا مکانی جادویی است که عدسی‌ها تصاویر واضح و روشن می‌سازند.\n\nدر این جزیره، یک برج جادویی وجود دارد که در آن یک شمع و یک پرده سفید قرار دارد. می‌دانی هر عدسی یک نقطه ویژه دارد که به آن "نقطه کانونی" می‌گویند؟\n\nبرای پیدا کردن آخرین رمز، باید آزمایش جادویی انجام دهی! شمع را در یک متری پرده سفید قرار بده. حالا عدسی را بین آنها بگیر و آرام آرام حرکت بده.\n\nتو میتونی با استفاده از شبیه ساز هم این آزمایش رو انجام بدی`, // MODIFIED DESCRIPTION
+              description: `نگاه کن! آن دور، یک جزیره کوچک دیگر است که از بقیه جزیره عدسی‌ها جدا افتاده است. برای رسیدن به آنجا باید با قایق از دریای نور عبور کنی!\n\nاین جزیره، جزیره نقطه کانونی نام دارد. جایی که آخرین راز عدسی‌ها در آن پنهان شده است. اینجا مکانی جادویی است که عدسی‌ها تصاویر واضح و روشن می‌سازند.\n\nدر این جزیره، یک برج جادویی وجود دارد که در آن یک شمع و یک پرده سفید قرار دارد. می‌دانی هر عدسی یک نقطه ویژه دارد که به آن "نقطه کانونی" می‌گویند؟\n\nبرای پیدا کردن آخرین رمز، باید آزمایش جادویی انجام دهی! شمع را در یک متری پرده سفید قرار بده. حالا عدسی را بین آنها بگیر و آرام آرام حرکت بده.\n\nتو میتونی با استفاده از شبیه ساز هم این آزمایش رو انجام بدی`,
             },
             5: {
               title: "پایان ماجراجویی",
@@ -575,16 +608,13 @@
         };
 
         const startScreen = document.getElementById("start-screen");
-        const startButtonContainer = document.getElementById(
-          "start-button-container"
-        );
+        const startButtonContainer = document.getElementById("start-button-container");
         const startButtonText = document.getElementById("start-button-text");
         const timerDisplay = document.getElementById("timer-display");
-        const foundLettersButton = document.getElementById(
-          "found-letters-button"
-        );
+        const foundLettersButton = document.getElementById("found-letters-button");
         const backgroundMusic = document.getElementById("background-music");
         const islandAmbience = document.getElementById("island-ambience");
+        const successSound = document.getElementById("success-sound"); // NEW: Success sound reference
 
         const treasureModal = document.getElementById("treasure-modal");
         const winModal = document.getElementById("win-modal");
@@ -596,13 +626,18 @@
         const modalCodeForm = document.getElementById("modal-code-form");
         const submitCodeButton = document.getElementById("submit-code");
         const restartButton = document.getElementById("restart-button");
+
+        const modalActionButtonsContainer = document.getElementById("modal-action-buttons"); // NEW
         const sanjeshButton = document.getElementById("sanjesh-button");
-        const simulatorButton = document.getElementById("simulator-button"); // NEW: Simulator button reference
+        const mindmapButton = document.getElementById("mindmap-button"); // NEW
+        const simulatorButton = document.getElementById("simulator-button");
 
         const ghoulAttackModal = document.getElementById("ghoul-attack-modal");
         const ghoulAckButton = document.getElementById("ghoul-ack-button");
         const ghoulSound = document.getElementById("ghoul-sound");
         const sirenSound = document.getElementById("siren-sound");
+
+        const notificationContainer = document.getElementById("notification-container"); // NEW
 
         const treasurePoints = [
           document.getElementById("point-1"),
@@ -626,10 +661,7 @@
         function formatTime(totalSeconds) {
           const minutes = Math.floor(totalSeconds / 60);
           const seconds = totalSeconds % 60;
-          return `${String(minutes).padStart(
-            2,
-            "0"
-          )}:${String(seconds).padStart(2, "0")}`;
+          return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2, "0")}`;
         }
 
         function updateTimerDisplay() {
@@ -650,6 +682,28 @@
           clearInterval(timerInterval);
           timerInterval = null;
         }
+
+        // NEW: Notification Function
+        function showNotification(message, type = "success", duration = 3000) {
+            const toast = document.createElement("div");
+            toast.className = `notification-toast ${type}`;
+            toast.textContent = message;
+            notificationContainer.appendChild(toast);
+
+            requestAnimationFrame(() => { // Trigger reflow for animation
+                toast.classList.add("show");
+            });
+
+            setTimeout(() => {
+                toast.classList.remove("show");
+                toast.addEventListener('transitionend', () => {
+                    if (toast.parentNode) { // Check if still in DOM
+                        toast.remove();
+                    }
+                }, { once: true });
+            }, duration);
+        }
+
 
         startButtonContainer.addEventListener("click", function () {
           if (startButtonContainer.classList.contains("timer-active")) return;
@@ -699,10 +753,7 @@
           gameState.currentStage = stageNumber;
           const stageInfo = gameState.stageInfo[stageNumber];
           modalTitle.textContent = stageInfo.title;
-          modalDescription.innerHTML = stageInfo.description.replace(
-            /\n/g,
-            "<br>"
-          );
+          modalDescription.innerHTML = stageInfo.description.replace(/\n/g,"<br>");
           modalImage.src = `stages/${stageNumber}.jpeg`;
           codeInput.value = "";
           treasureModal.classList.add("active");
@@ -710,20 +761,30 @@
           modalCodeForm.style.display = "flex";
           codeInput.style.display = "block";
           submitCodeButton.textContent = "تأیید";
+
+          // Hide all action buttons and their container initially
           sanjeshButton.style.display = "none";
-          simulatorButton.style.display = "none"; // NEW: Hide simulator button by default
+          mindmapButton.style.display = "none";
+          simulatorButton.style.display = "none";
+          modalActionButtonsContainer.style.display = "none";
+
 
           if (stageNumber === 4) {
-            // NEW: Show simulator button for stage 4
+            modalActionButtonsContainer.style.display = "flex"; // Show container
             simulatorButton.style.display = "block";
             simulatorButton.onclick = function () {
               window.open("https://mo3beh.github.io/scisim/", "_blank");
             };
           } else if (stageNumber === 5) {
             triggerConfettiShower(80);
+            modalActionButtonsContainer.style.display = "flex"; // Show container
             sanjeshButton.style.display = "block";
+            mindmapButton.style.display = "block"; // Show the new button
             sanjeshButton.onclick = function () {
               window.open("http://mo3beh.github.io/trgame", "_blank");
+            };
+            mindmapButton.onclick = function () { // Add onclick for new button
+              window.open("https://mo3beh.github.io/thmap", "_blank");
             };
           }
         }
@@ -756,14 +817,17 @@
           const correctCode = gameState.codes[gameState.currentStage];
 
           if (enteredCode === correctCode) {
+            showNotification("رمز صحیح است! مرحله بعد باز شد.", "success"); // NEW Notification
+            if (successSound) { // NEW: Play success sound
+                successSound.play().catch(e => console.warn("Success sound play failed:", e));
+            }
+
             if (!gameState.completedStages.includes(gameState.currentStage)) {
               gameState.completedStages.push(gameState.currentStage);
-              completedFlags[gameState.currentStage - 1].style.display =
-                "block";
+              completedFlags[gameState.currentStage - 1].style.display = "block";
               treasurePoints[gameState.currentStage - 1].style.animation = "";
             }
 
-            // NEW: Stop ghoul/siren sounds if stage 2 is completed
             if (gameState.currentStage === 2) {
               ghoulSound.pause();
               ghoulSound.currentTime = 0;
@@ -782,14 +846,13 @@
 
             if (gameState.currentStage < 5) {
               treasurePoints[gameState.currentStage].style.opacity = "1";
-              treasurePoints[gameState.currentStage].style.pointerEvents =
-                "auto";
-              treasurePoints[gameState.currentStage].style.animation =
-                "bounce 0.5s infinite";
+              treasurePoints[gameState.currentStage].style.pointerEvents = "auto";
+              treasurePoints[gameState.currentStage].style.animation = "bounce 0.5s infinite";
             }
 
             treasureModal.classList.remove("active");
           } else {
+            showNotification("رمز اشتباه است. دوباره تلاش کنید!", "error"); // NEW Notification
             codeInput.style.border = "2px solid red";
             codeInput.style.animation = "shake 0.5s";
             setTimeout(() => {
@@ -847,7 +910,6 @@
           completedFlags.forEach((flag) => {
             flag.style.display = "none";
           });
-          // Stop any lingering sounds on restart
           ghoulSound.pause();
           ghoulSound.currentTime = 0;
           sirenSound.pause();
