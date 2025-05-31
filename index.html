@@ -573,7 +573,8 @@
     <audio id="island-ambience" src="waves.mp3" loop preload="auto"></audio>
     <audio id="ghoul-sound" src="ghoul.mp3" preload="auto"></audio>
     <audio id="siren-sound" src="siren.mp3" loop preload="auto"></audio>
-    <audio id="success-sound" src="success.mp3" preload="auto"></audio> <!-- NEW: Success sound, replace success.mp3 with actual file -->
+    <audio id="success-sound" src="success.mp3" preload="auto"></audio>
+    <audio id="final-win-sound" src="final.mp3" preload="auto"></audio> <!-- NEW: Final win sound -->
 
 
     <script>
@@ -614,7 +615,9 @@
         const foundLettersButton = document.getElementById("found-letters-button");
         const backgroundMusic = document.getElementById("background-music");
         const islandAmbience = document.getElementById("island-ambience");
-        const successSound = document.getElementById("success-sound"); // NEW: Success sound reference
+        const successSound = document.getElementById("success-sound");
+        const finalWinSound = document.getElementById("final-win-sound"); // NEW: Final win sound reference
+
 
         const treasureModal = document.getElementById("treasure-modal");
         const winModal = document.getElementById("win-modal");
@@ -627,9 +630,9 @@
         const submitCodeButton = document.getElementById("submit-code");
         const restartButton = document.getElementById("restart-button");
 
-        const modalActionButtonsContainer = document.getElementById("modal-action-buttons"); // NEW
+        const modalActionButtonsContainer = document.getElementById("modal-action-buttons");
         const sanjeshButton = document.getElementById("sanjesh-button");
-        const mindmapButton = document.getElementById("mindmap-button"); // NEW
+        const mindmapButton = document.getElementById("mindmap-button");
         const simulatorButton = document.getElementById("simulator-button");
 
         const ghoulAttackModal = document.getElementById("ghoul-attack-modal");
@@ -637,7 +640,7 @@
         const ghoulSound = document.getElementById("ghoul-sound");
         const sirenSound = document.getElementById("siren-sound");
 
-        const notificationContainer = document.getElementById("notification-container"); // NEW
+        const notificationContainer = document.getElementById("notification-container");
 
         const treasurePoints = [
           document.getElementById("point-1"),
@@ -683,7 +686,6 @@
           timerInterval = null;
         }
 
-        // NEW: Notification Function
         function showNotification(message, type = "success", duration = 3000) {
             const toast = document.createElement("div");
             toast.className = `notification-toast ${type}`;
@@ -762,7 +764,6 @@
           codeInput.style.display = "block";
           submitCodeButton.textContent = "تأیید";
 
-          // Hide all action buttons and their container initially
           sanjeshButton.style.display = "none";
           mindmapButton.style.display = "none";
           simulatorButton.style.display = "none";
@@ -770,20 +771,20 @@
 
 
           if (stageNumber === 4) {
-            modalActionButtonsContainer.style.display = "flex"; // Show container
+            modalActionButtonsContainer.style.display = "flex";
             simulatorButton.style.display = "block";
             simulatorButton.onclick = function () {
               window.open("https://mo3beh.github.io/scisim/", "_blank");
             };
           } else if (stageNumber === 5) {
             triggerConfettiShower(80);
-            modalActionButtonsContainer.style.display = "flex"; // Show container
+            modalActionButtonsContainer.style.display = "flex";
             sanjeshButton.style.display = "block";
-            mindmapButton.style.display = "block"; // Show the new button
+            mindmapButton.style.display = "block";
             sanjeshButton.onclick = function () {
               window.open("http://mo3beh.github.io/trgame", "_blank");
             };
-            mindmapButton.onclick = function () { // Add onclick for new button
+            mindmapButton.onclick = function () {
               window.open("https://mo3beh.github.io/thmap", "_blank");
             };
           }
@@ -817,8 +818,8 @@
           const correctCode = gameState.codes[gameState.currentStage];
 
           if (enteredCode === correctCode) {
-            showNotification("رمز صحیح است! مرحله بعد باز شد.", "success"); // NEW Notification
-            if (successSound) { // NEW: Play success sound
+            showNotification("رمز صحیح است! مرحله بعد باز شد.", "success");
+            if (successSound) {
                 successSound.play().catch(e => console.warn("Success sound play failed:", e));
             }
 
@@ -840,6 +841,10 @@
               stopTimer();
               setTimeout(() => {
                 winModal.classList.add("active");
+                if (finalWinSound) { // NEW: Play final win sound
+                    finalWinSound.currentTime = 0;
+                    finalWinSound.play().catch(e => console.warn("Final win sound play failed:", e));
+                }
               }, 500);
               return;
             }
@@ -852,7 +857,7 @@
 
             treasureModal.classList.remove("active");
           } else {
-            showNotification("رمز اشتباه است. دوباره تلاش کنید!", "error"); // NEW Notification
+            showNotification("رمز اشتباه است. دوباره تلاش کنید!", "error");
             codeInput.style.border = "2px solid red";
             codeInput.style.animation = "shake 0.5s";
             setTimeout(() => {
@@ -876,6 +881,10 @@
 
         restartButton.addEventListener("click", function () {
           winModal.classList.remove("active");
+          if (finalWinSound) { // NEW: Stop final win sound
+              finalWinSound.pause();
+              finalWinSound.currentTime = 0;
+          }
           startScreen.style.display = "flex";
           stopTimer();
           timerDisplay.classList.remove("corner-timer");
